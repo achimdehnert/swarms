@@ -88,7 +88,9 @@ class BaseWorkflow(BaseStructure):
         elif tasks:
             self.task_pool.extend(tasks)
         else:
-            raise ValueError("You must provide a task or a list of tasks")
+            raise ValueError(
+                "You must provide a task or a list of tasks"
+            )
 
     def add_agent(self, agent: Agent, *args, **kwargs):
         return self.agent_pool(agent)
@@ -140,17 +142,23 @@ class BaseWorkflow(BaseStructure):
             Dict[str, Any]: The results of each task in the workflow
         """
         try:
-            return {task.description: task.result for task in self.tasks}
+            return {
+                task.description: task.result for task in self.tasks
+            }
         except Exception as error:
             print(
-                colored(f"Error getting task results: {error}", "red"),
+                colored(
+                    f"Error getting task results: {error}", "red"
+                ),
             )
 
     def remove_task(self, task: str) -> None:
         """Remove tasks from sequential workflow"""
         try:
             self.tasks = [
-                task for task in self.tasks if task.description != task
+                task
+                for task in self.tasks
+                if task.description != task
             ]
         except Exception as error:
             print(
@@ -172,7 +180,7 @@ class BaseWorkflow(BaseStructure):
             ValueError: If the task is not found in the workflow.
 
         Examples:
-        >>> from swarms.models import OpenAIChat
+        >>> from swarm_models import OpenAIChat
         >>> from swarms.structs import SequentialWorkflow
         >>> llm = OpenAIChat(openai_api_key="")
         >>> workflow = SequentialWorkflow(max_loops=1)
@@ -189,7 +197,9 @@ class BaseWorkflow(BaseStructure):
                     task.kwargs.update(updates)
                     break
             else:
-                raise ValueError(f"Task {task} not found in workflow.")
+                raise ValueError(
+                    f"Task {task} not found in workflow."
+                )
         except Exception as error:
             print(
                 colored(
@@ -208,7 +218,7 @@ class BaseWorkflow(BaseStructure):
             ValueError: If the task is not found in the workflow.
 
         Examples:
-        >>> from swarms.models import OpenAIChat
+        >>> from swarm_models import OpenAIChat
         >>> from swarms.structs import SequentialWorkflow
         >>> llm = OpenAIChat(openai_api_key="")
         >>> workflow = SequentialWorkflow(max_loops=1)
@@ -224,7 +234,9 @@ class BaseWorkflow(BaseStructure):
                     self.tasks.remove(task)
                     break
             else:
-                raise ValueError(f"Task {task} not found in workflow.")
+                raise ValueError(
+                    f"Task {task} not found in workflow."
+                )
         except Exception as error:
             print(
                 colored(
@@ -245,7 +257,7 @@ class BaseWorkflow(BaseStructure):
             filepath (str): The path to save the workflow state to.
 
         Examples:
-        >>> from swarms.models import OpenAIChat
+        >>> from swarm_models import OpenAIChat
         >>> from swarms.structs import SequentialWorkflow
         >>> llm = OpenAIChat(openai_api_key="")
         >>> workflow = SequentialWorkflow(max_loops=1)
@@ -307,7 +319,9 @@ class BaseWorkflow(BaseStructure):
                 )
             )
 
-    def load_workflow_state(self, filepath: str = None, **kwargs) -> None:
+    def load_workflow_state(
+        self, filepath: str = None, **kwargs
+    ) -> None:
         """
         Loads the workflow state from a json file and restores the workflow state.
 
@@ -315,7 +329,7 @@ class BaseWorkflow(BaseStructure):
             filepath (str): The path to load the workflow state from.
 
         Examples:
-        >>> from swarms.models import OpenAIChat
+        >>> from swarm_models import OpenAIChat
         >>> from swarms.structs import SequentialWorkflow
         >>> llm = OpenAIChat(openai_api_key="")
         >>> workflow = SequentialWorkflow(max_loops=1)
@@ -358,7 +372,7 @@ class BaseWorkflow(BaseStructure):
             **kwargs: Additional keyword arguments to pass to the dashboard.
 
         Examples:
-        >>> from swarms.models import OpenAIChat
+        >>> from swarm_models import OpenAIChat
         >>> from swarms.structs import SequentialWorkflow
         >>> llm = OpenAIChat(openai_api_key="")
         >>> workflow = SequentialWorkflow(max_loops=1)

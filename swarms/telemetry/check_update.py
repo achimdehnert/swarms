@@ -24,7 +24,7 @@ def check_for_package(package: str) -> bool:
         return False
 
 
-def check_for_update():
+def check_for_update() -> bool:
     """Check for updates
 
     Returns:
@@ -37,4 +37,6 @@ def check_for_update():
     # Get the current version using pkg_resources
     current_version = pkg_resources.get_distribution("swarms").version
 
-    return version.parse(latest_version) > version.parse(current_version)
+    return version.parse(latest_version) > version.parse(
+        current_version
+    )

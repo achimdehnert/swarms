@@ -4,7 +4,7 @@ import os
 import pytest
 from dotenv import load_dotenv
 
-from swarms.models import OpenAIChat
+from swarm_models import OpenAIChat
 from swarms.structs import BaseWorkflow
 
 load_dotenv()
@@ -30,9 +30,12 @@ def test_load_workflow_state():
     workflow.load_workflow_state("workflow_state.json")
     assert workflow.max_loops == 1
     assert len(workflow.tasks) == 2
-    assert workflow.tasks[0].description == "What's the weather in miami"
     assert (
-        workflow.tasks[1].description == "Create a report on these metrics"
+        workflow.tasks[0].description == "What's the weather in miami"
+    )
+    assert (
+        workflow.tasks[1].description
+        == "Create a report on these metrics"
     )
     teardown_workflow()
 

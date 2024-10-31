@@ -1,10 +1,45 @@
+import threading
+import uuid
+from datetime import datetime
 from typing import Callable, Dict, List, Optional
 
-from swarms.memory.base_vectordb import BaseVectorDatabase
+from pydantic import BaseModel, Field
+from swarms_memory import BaseVectorDatabase
+
+from swarms.schemas.agent_step_schemas import ManySteps
 from swarms.structs.agent import Agent
 from swarms.structs.base_swarm import BaseSwarm
-from swarms.utils.loguru_logger import logger
 from swarms.structs.omni_agent_types import AgentType
+from swarms.utils.loguru_logger import logger
+
+
+class AgentRearrangeInput(BaseModel):
+    swarm_id: str
+    name: str
+    description: str
+    flow: str
+    max_loops: int
+    time: str = Field(
+        default_factory=lambda: datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+        description="The time the agent was created.",
+    )
+
+
+def swarm_id():
+    return uuid.uuid4().hex
+
+
+class AgentRearrangeOutput(BaseModel):
+    Input: AgentRearrangeInput
+    outputs: List[ManySteps]
+    time: str = Field(
+        default_factory=lambda: datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+        description="The time the agent was created.",
+    )
 
 
 class AgentRearrange(BaseSwarm):
@@ -26,13 +61,19 @@ class AgentRearrange(BaseSwarm):
 
     def __init__(
         self,
+        id: str = swarm_id(),
+        name: str = "AgentRearrange",
+        description: str = "A swarm of agents for rearranging tasks.",
         agents: List[AgentType] = None,
         flow: str = None,
         max_loops: int = 1,
         verbose: bool = True,
         memory_system: BaseVectorDatabase = None,
         human_in_the_loop: bool = False,
-        custom_human_in_the_loop: Optional[Callable[[str], str]] = None,
+        custom_human_in_the_loop: Optional[
+            Callable[[str], str]
+        ] = None,
+        return_json: bool = False,
         *args,
         **kwargs,
     ):
@@ -43,6 +84,14 @@ class AgentRearrange(BaseSwarm):
             agents (List[Agent], optional): A list of Agent objects. Defaults to None.
             flow (str, optional): The flow pattern of the tasks. Defaults to None.
         """
+        super(AgentRearrange, self).__init__(
+            name=name,
+            description=description,
+            agents=agents,
+            *args,
+            **kwargs,
+        )
+        self.id = id
         self.agents = {agent.name: agent for agent in agents}
         self.flow = flow if flow is not None else ""
         self.verbose = verbose
@@ -50,17 +99,41 @@ class AgentRearrange(BaseSwarm):
         self.memory_system = memory_system
         self.human_in_the_loop = human_in_the_loop
         self.custom_human_in_the_loop = custom_human_in_the_loop
-        self.swarm_history = {agent.agent_name: [] for agent in agents}
-        self.sub_swarm = {}
+        self.return_json = return_json
+        self.swarm_history = {
+            agent.agent_name: [] for agent in agents
+        }
+        self.lock = threading.Lock()
+        self.id = uuid.uuid4().hex if id is None else id
 
-        # Verbose is True
-        if verbose is True:
-            logger.add("agent_rearrange.log")
+        # Run the relianility checks
+        self.reliability_checks()
 
-        # Memory system
-        if memory_system is not None:
-            for agent in self.agents.values():
-                agent.long_term_memory = memory_system
+        # Output schema
+        self.input_config = AgentRearrangeInput(
+            swarm_id=self.id,
+            name=self.name,
+            description=self.description,
+            flow=self.flow,
+            max_loops=self.max_loops,
+        )
+
+        # Output schema
+        self.output_schema = AgentRearrangeOutput(
+            Input=self.input_config,
+            outputs=[],
+        )
+
+    def reliability_checks(self):
+        logger.info("Running reliability checks.")
+        if self.agents is None:
+            raise ValueError("No agents found in the swarm.")
+
+        if self.flow is None:
+            raise ValueError("No flow found in the swarm.")
+
+        if self.max_loops is None:
+            raise ValueError("No max_loops found in the swarm.")
 
         logger.info(
             "AgentRearrange initialized with agents: {}".format(
@@ -68,9 +141,9 @@ class AgentRearrange(BaseSwarm):
             )
         )
 
-    def add_sub_swarm(self, name: str, flow: str):
-        self.sub_swarm[name] = flow
-        logger.info(f"Sub-swarm {name} added with flow: {flow}")
+        # Verbose is True
+        if self.verbose is True:
+            logger.add("agent_rearrange.log")
 
     def set_custom_flow(self, flow: str):
         self.flow = flow
@@ -138,7 +211,10 @@ class AgentRearrange(BaseSwarm):
 
             # Loop over the agent names
             for agent_name in agent_names:
-                if agent_name not in self.agents and agent_name != "H":
+                if (
+                    agent_name not in self.agents
+                    and agent_name != "H"
+                ):
                     raise ValueError(
                         f"Agent '{agent_name}' is not registered."
                     )
@@ -179,7 +255,9 @@ class AgentRearrange(BaseSwarm):
 
             # If custom_tasks have the agents name and tasks then combine them
             if custom_tasks is not None:
-                c_agent_name, c_task = next(iter(custom_tasks.items()))
+                c_agent_name, c_task = next(
+                    iter(custom_tasks.items())
+                )
 
                 # Find the position of the custom agent in the tasks list
                 position = tasks.index(c_agent_name)
@@ -231,6 +309,9 @@ class AgentRearrange(BaseSwarm):
                                     **kwargs,
                                 )
                                 results.append(result)
+                                self.output_schema.outputs.append(
+                                    agent.agent_output
+                                )
 
                         current_task = "; ".join(results)
                     else:
@@ -257,8 +338,169 @@ class AgentRearrange(BaseSwarm):
                         else:
                             agent = self.agents[agent_name]
                             current_task = agent.run(
-                                current_task, img, is_last, *args, **kwargs
+                                current_task,
+                                img,
+                                is_last,
+                                *args,
+                                **kwargs,
                             )
+                            self.output_schema.outputs.append(
+                                agent.agent_output
+                            )
+                loop_count += 1
+
+            # return current_task
+            if self.return_json:
+                return self.output_schema.model_dump_json(indent=4)
+            else:
+                return current_task
+
+        except Exception as e:
+            logger.error(f"An error occurred: {e}")
+            return e
+
+    async def astream(
+        self,
+        task: str = None,
+        img: str = None,
+        custom_tasks: Dict[str, str] = None,
+        *args,
+        **kwargs,
+    ):
+        """
+        Runs the swarm with LangChain's astream_events v1 API enabled.
+        NOTICE: Be sure to only call this method if you are using LangChain-based models in your swarm.
+        This is useful for enhancing user experience by providing real-time updates of how each agent
+        in the swarm is processing the current task.
+
+        Args:
+            task: The initial prompt (aka task) passed to the first agent(s) in the swarm.
+
+        Returns:
+            str: The final output generated.
+        """
+        try:
+            if not self.validate_flow():
+                return "Invalid flow configuration."
+
+            tasks = self.flow.split("->")
+            current_task = task
+
+            # If custom_tasks have the agents name and tasks then combine them
+            if custom_tasks is not None:
+                c_agent_name, c_task = next(
+                    iter(custom_tasks.items())
+                )
+
+                # Find the position of the custom agent in the tasks list
+                position = tasks.index(c_agent_name)
+
+                # If there is a prebois agent merge its task with the custom tasks
+                if position > 0:
+                    tasks[position - 1] += "->" + c_task
+                else:
+                    # If there is no prevous agent just insert the custom tasks
+                    tasks.insert(position, c_task)
+
+            logger.info("TASK:", task)
+
+            # Set the loop counter
+            loop_count = 0
+            while loop_count < self.max_loops:
+                for task in tasks:
+                    agent_names = [
+                        name.strip() for name in task.split(",")
+                    ]
+                    if len(agent_names) > 1:
+                        # Parallel processing
+                        logger.info(
+                            f"Running agents in parallel: {agent_names}"
+                        )
+                        results = []
+                        for agent_name in agent_names:
+                            if agent_name == "H":
+                                # Human in the loop intervention
+                                if (
+                                    self.human_in_the_loop
+                                    and self.custom_human_in_the_loop
+                                ):
+                                    current_task = (
+                                        self.custom_human_in_the_loop(
+                                            current_task
+                                        )
+                                    )
+                                else:
+                                    current_task = input(
+                                        "Enter your response:"
+                                    )
+                            else:
+                                agent = self.agents[agent_name]
+                                result = None
+                                # As the current `swarms` package is using LangChain v0.1 we need to use the v0.1 version of the `astream_events` API
+                                # Below is the link to the `astream_events` spec as outlined in the LangChain v0.1 docs
+                                # https://python.langchain.com/v0.1/docs/expression_language/streaming/#event-reference
+                                # Below is the link to the `astream_events` spec as outlined in the LangChain v0.2 docs
+                                # https://python.langchain.com/v0.2/docs/versions/v0_2/migrating_astream_events/
+                                async for evt in agent.astream_events(
+                                    current_task, version="v1"
+                                ):
+                                    # print(evt) # <- useful when building/debugging
+                                    if evt["event"] == "on_llm_end":
+                                        result = evt["data"]["output"]
+                                        print(agent.name, result)
+                                results.append(result)
+
+                        current_task = ""
+                        for index, res in enumerate(results):
+                            current_task += (
+                                "# OUTPUT of "
+                                + agent_names[index]
+                                + ""
+                                + res
+                                + "\n\n"
+                            )
+                    else:
+                        # Sequential processing
+                        logger.info(
+                            f"Running agents sequentially: {agent_names}"
+                        )
+
+                        agent_name = agent_names[0]
+                        if agent_name == "H":
+                            # Human-in-the-loop intervention
+                            if (
+                                self.human_in_the_loop
+                                and self.custom_human_in_the_loop
+                            ):
+                                current_task = (
+                                    self.custom_human_in_the_loop(
+                                        current_task
+                                    )
+                                )
+                            else:
+                                current_task = input(
+                                    "Enter the next task: "
+                                )
+                        else:
+                            agent = self.agents[agent_name]
+                            result = None
+                            # As the current `swarms` package is using LangChain v0.1 we need to use the v0.1 version of the `astream_events` API
+                            # Below is the link to the `astream_events` spec as outlined in the LangChain v0.1 docs
+                            # https://python.langchain.com/v0.1/docs/expression_language/streaming/#event-reference
+                            # Below is the link to the `astream_events` spec as outlined in the LangChain v0.2 docs
+                            # https://python.langchain.com/v0.2/docs/versions/v0_2/migrating_astream_events/
+                            async for evt in agent.astream_events(
+                                f"SYSTEM: {agent.system_prompt}\nINPUT:{current_task}",
+                                version="v1",
+                            ):
+                                # print(evt) # <- useful when building/debugging
+                                if evt["event"] == "on_llm_end":
+                                    result = evt["data"]["output"]
+                                    print(
+                                        agent.name, "result", result
+                                    )
+                            current_task = result
+
                 loop_count += 1
 
             return current_task
@@ -287,7 +529,9 @@ class AgentRearrange(BaseSwarm):
         if name.startswith("Human"):
             return self.human_intervention(task)
         elif name in self.sub_swarm:
-            return self.run_sub_swarm(task, name, img, *args, **kwargs)
+            return self.run_sub_swarm(
+                task, name, img, *args, **kwargs
+            )
         else:
             agent = self.agents[name]
             return agent.run(task, img, is_last, *args, **kwargs)
@@ -299,53 +543,6 @@ class AgentRearrange(BaseSwarm):
             return input(
                 "Human intervention required. Enter your response: "
             )
-
-    def run_sub_swarm(
-        self, swarm_name: str, task: str, img: str, *args, **kwargs
-    ):
-        """
-        Runs a sub-swarm by executing a sequence of tasks on a set of agents.
-
-        Args:
-            swarm_name (str): The name of the sub-swarm to run.
-            task (str): The initial task to be executed.
-            img (str): The image to be processed by the agents.
-            *args: Variable length argument list.
-            **kwargs: Arbitrary keyword arguments.
-
-        Returns:
-            str: The result of the last executed task.
-
-        """
-        sub_flow = self.sub_swarm[swarm_name]
-        sub_tasks = sub_flow.split("->")
-        current_task = task
-
-        for sub_task in sub_tasks:
-            is_last = sub_task == sub_tasks[-1]
-            agent_names = [name.strip() for name in sub_task.split(",")]
-            if len(agent_names) > 1:
-                results = []
-                for agent_name in agent_names:
-                    result = self.process_agent_or_swarm(
-                        agent_name,
-                        current_task,
-                        img,
-                        is_last * args,
-                        **kwargs,
-                    )
-                    results.append(result)
-                current_task = "; ".join(results)
-            else:
-                current_task = self.process_agent_or_swarm(
-                    agent_names[0],
-                    current_task,
-                    is_last,
-                    img,
-                    *args,
-                    **kwargs,
-                )
-        return current_task
 
 
 def rearrange(
@@ -378,12 +575,3 @@ def rearrange(
         agents=agents, flow=flow, *args, **kwargs
     )
     return agent_system.run(task, *args, **kwargs)
-
-
-# out = AgentRearrange(
-#     agents=[agent1, agent2, agent3],
-#     flow="agent1 -> agent2, agent3, swarm",
-#     task="Perform a task",
-#     swarm = "agent1 -> agent2, agent3, swarm"
-
-# )

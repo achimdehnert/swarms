@@ -13,13 +13,16 @@ static/generated
 runs
 Financial-Analysis-Agent_state.json
 artifacts_five
+encryption
 errors
 chroma
 agent_workspace
 .pt
 Accounting Assistant_state.json
 Unit Testing Agent_state.json
+sec_agent
 Devin_state.json
+poetry.lock
 hire_researchers
 agent_workspace
 json_logs

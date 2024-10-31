@@ -1,5 +1,3 @@
-from swarms.agents.agent_wrapper import agent_wrapper
-from swarms.agents.base import AbstractAgent
 from swarms.agents.stopping_conditions import (
     check_cancelled,
     check_complete,
@@ -13,9 +11,13 @@ from swarms.agents.stopping_conditions import (
     check_success,
 )
 from swarms.agents.tool_agent import ToolAgent
+from swarms.agents.create_agents_from_yaml import (
+    create_agents_from_yaml,
+)
+from swarms.agents.prompt_generator_agent import PromptGeneratorAgent
+
 
 __all__ = [
-    "AbstractAgent",
     "ToolAgent",
     "check_done",
     "check_finished",
@@ -27,5 +29,6 @@ __all__ = [
     "check_cancelled",
     "check_exit",
     "check_end",
-    "agent_wrapper",
+    "create_agents_from_yaml",
+    "PromptGeneratorAgent",
 ]

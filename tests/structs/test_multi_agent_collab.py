@@ -4,7 +4,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from swarms import Agent, OpenAIChat
+from swarms import Agent
+from swarm_models import OpenAIChat
 from swarms.structs.multi_agent_collab import MultiAgentCollaboration
 
 # Initialize the director agent
@@ -117,8 +118,12 @@ def test_run(collaboration):
 
 
 def test_format_results(collaboration):
-    collaboration.results = [{"agent": "Agent1", "response": "Response1"}]
-    formatted_results = collaboration.format_results(collaboration.results)
+    collaboration.results = [
+        {"agent": "Agent1", "response": "Response1"}
+    ]
+    formatted_results = collaboration.format_results(
+        collaboration.results
+    )
     assert "Agent1 responded: Response1" in formatted_results
 
 

@@ -6,7 +6,7 @@ import threading
 from dotenv import load_dotenv
 
 from scripts.auto_tests_docs.docs import DOCUMENTATION_WRITER_SOP
-from swarms import OpenAIChat
+from swarm_models import OpenAIChat
 
 load_dotenv()
 
@@ -52,7 +52,9 @@ def main():
     # Gathering all functions from the swarms.utils module
     functions = [
         obj
-        for name, obj in inspect.getmembers(sys.modules["swarms.utils"])
+        for name, obj in inspect.getmembers(
+            sys.modules["swarms.utils"]
+        )
         if inspect.isfunction(obj)
     ]
 

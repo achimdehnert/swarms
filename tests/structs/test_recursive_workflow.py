@@ -2,7 +2,7 @@ from unittest.mock import Mock, create_autospec
 
 import pytest
 
-from swarms.models import OpenAIChat
+from swarm_models import OpenAIChat
 from swarms.structs import RecursiveWorkflow, Task
 
 
@@ -53,7 +53,9 @@ def test_run_stop_token_not_in_result():
         try:
             workflow.run()
         except RecursionError:
-            pytest.fail("RecursiveWorkflow.run caused a RecursionError")
+            pytest.fail(
+                "RecursiveWorkflow.run caused a RecursionError"
+            )
 
     assert agent.execute.call_count == max_iterations
 

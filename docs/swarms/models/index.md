@@ -1,14 +1,18 @@
-## LLMs in Swarms Documentation
+# Swarm Models
+
+
+```bash
+$ pip3 install -U swarm-models
+```
 
 Welcome to the documentation for the llm section of the swarms package, designed to facilitate seamless integration with various AI language models and APIs. This package empowers developers, end-users, and system administrators to interact with AI models from different providers, such as OpenAI, Hugging Face, Google PaLM, and Anthropic.
 
 ### Table of Contents
 1. [OpenAI](#openai)
 2. [HuggingFace](#huggingface)
-3. [Google PaLM](#google-palm)
-4. [Anthropic](#anthropic)
+3. [Anthropic](#anthropic)
 
-### 1. OpenAI (swarms.agents.models.OpenAI)
+### 1. OpenAI (swarm_models.OpenAI)
 
 The OpenAI class provides an interface to interact with OpenAI's language models. It allows both synchronous and asynchronous interactions.
 
@@ -32,7 +36,7 @@ OpenAI(api_key: str, system: str = None, console: bool = True, model: str = None
 
 **Methods:**
 
-- `generate(message: str, **kwargs) -> str`: Generate a response using the OpenAI model.
+- `run(message: str, **kwargs) -> str`: Generate a response using the OpenAI model.
 
 - `generate_async(message: str, **kwargs) -> str`: Generate a response asynchronously.
 
@@ -44,11 +48,11 @@ OpenAI(api_key: str, system: str = None, console: bool = True, model: str = None
 ```python
 import asyncio
 
-from swarms import OpenAI
+from swarm_models import OpenAI
 
 chat = OpenAI(api_key="YOUR_OPENAI_API_KEY")
 
-response = chat.generate("Hello, how can I assist you?")
+response = chat.run("Hello, how can I assist you?")
 print(response)
 
 ids = ["id1", "id2", "id3"]
@@ -56,7 +60,7 @@ async_responses = asyncio.run(chat.ask_multiple(ids, "How is {id}?"))
 print(async_responses)
 ```
 
-### 2. HuggingFace (swarms.agents.models.HuggingFaceLLM)
+### 2. HuggingFace (swarm_models.HuggingFaceLLM)
 
 The HuggingFaceLLM class allows interaction with language models from Hugging Face.
 
@@ -79,64 +83,21 @@ HuggingFaceLLM(model_id: str, device: str = None, max_length: int = 20, quantize
 
 **Methods:**
 
-- `generate(prompt_text: str, max_length: int = None) -> str`: Generate text based on a prompt.
+- `run(prompt_text: str, max_length: int = None) -> str`: Generate text based on a prompt.
 
 **Usage Example:**
 ```python
-from swarms import HuggingFaceLLM
+from swarm_models import HuggingFaceLLM
 
 model_id = "gpt2"
 hugging_face_model = HuggingFaceLLM(model_id=model_id)
 
 prompt = "Once upon a time"
-generated_text = hugging_face_model.generate(prompt)
+generated_text = hugging_face_model.run(prompt)
 print(generated_text)
 ```
 
-### 3. Google PaLM (swarms.agents.models.GooglePalm)
-
-The GooglePalm class provides an interface for Google's PaLM Chat API.
-
-**Constructor:**
-```python
-GooglePalm(model_name: str = "models/chat-bison-001", google_api_key: str = None, temperature: float = None, top_p: float = None, top_k: int = None, n: int = 1)
-```
-
-**Attributes:**
-
-- `model_name` (str): Name of the Google PaLM model.
-
-- `google_api_key` (str, optional): Google API key.
-
-- `temperature` (float, optional): Temperature for text generation.
-
-- `top_p` (float, optional): Top-p sampling value.
-
-- `top_k` (int, optional): Top-k sampling value.
-
-- `n` (int, default=1): Number of candidate completions.
-
-**Methods:**
-
-- `generate(messages: List[Dict[str, Any]], stop: List[str] = None, **kwargs) -> Dict[str, Any]`: Generate text based on a list of messages.
-
-- `__call__(messages: List[Dict[str, Any]], stop: List[str] = None, **kwargs) -> Dict[str, Any]`: Generate text using the call syntax.
-
-**Usage Example:**
-```python
-from swarms import GooglePalm
-
-google_palm = GooglePalm()
-messages = [
-    {"role": "system", "content": "You are a helpful assistant"},
-    {"role": "user", "content": "Tell me a joke"},
-]
-
-response = google_palm.generate(messages)
-print(response["choices"][0]["text"])
-```
-
-### 4. Anthropic (swarms.agents.models.Anthropic)
+### 3. Anthropic (swarm_models.Anthropic)
 
 The Anthropic class enables interaction with Anthropic's large language models.
 
@@ -163,15 +124,15 @@ Anthropic(model: str = "claude-2", max_tokens_to_sample: int = 256, temperature:
 
 **Methods:**
 
-- `generate(prompt: str, stop: List[str] = None) -> str`: Generate text based on a prompt.
+- `run(prompt: str, stop: List[str] = None) -> str`: Generate text based on a prompt.
 
 **Usage Example:**
 ```python
-from swarms import Anthropic
+from swarm_models import Anthropic
 
 anthropic = Anthropic()
 prompt = "Once upon a time"
-generated_text = anthropic.generate(prompt)
+generated_text = anthropic.run(prompt)
 print(generated_text)
 ```
 

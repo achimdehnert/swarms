@@ -1,6 +1,6 @@
 ## Building Analyst Agents with Swarms to write Business Reports
 
-> Jupyter Notebook accompanying this post is accessible at: [Business Analyst Agent Notebook](https://github.com/kyegomez/swarms/blob/master/playground/demos/business_analysis_swarm/business-analyst-agent.ipynb)
+> Jupyter Notebook accompanying this post is accessible at: [Business Analyst Agent Notebook](https://github.com/kyegomez/swarms/blob/master/examples/demos/business_analysis_swarm/business-analyst-agent.ipynb)
 
 Solving a business problem often involves preparing a Business Case Report. This report comprehensively analyzes the problem, evaluates potential solutions, and provides evidence-based recommendations and an implementation plan to effectively address the issue and drive business value. While the process of preparing one requires an experienced business analyst, the workflow can be augmented using AI agents. Two candidates stick out as areas to work on:
 
@@ -96,7 +96,7 @@ tool_schema = QueryPlan(
 We specify the query, task specification and an appropriate system prompt.
 
 ```python
-from swarms import OpenAIChat
+from swarm_models import OpenAIChat
 from swarms import Agent
 
 query = "How do we improve Nike's revenue in Q3 2024?"
@@ -327,7 +327,6 @@ from langchain_core.pydantic_v1 import BaseModel, Field
 
 from kay.rag.retrievers import KayRetriever
 
-@tool
 def browser(query: str) -> str:
     """
     Search the query in the browser with the Tavily API tool.
@@ -343,7 +342,6 @@ def browser(query: str) -> str:
         response += (result['content'] + '\n')
     return response
 
-@tool
 def kay_retriever(query: str) -> str:
     """
     Search the financial data query with the KayAI API tool.
@@ -375,7 +373,7 @@ from dotenv import load_dotenv
 
 from swarms.utils.data_to_text import data_to_text
 from swarms.utils.markdown_message import display_markdown_message
-from swarms.memory.base_vectordb import AbstractVectorDatabase
+from swarms_memory import  AbstractVectorDatabase
 
 
 # Results storage using local ChromaDB
